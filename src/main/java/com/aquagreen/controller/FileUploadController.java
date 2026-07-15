@@ -24,13 +24,8 @@ public class FileUploadController {
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
-<<<<<<< HEAD
 
     @Value("${app.upload.base-url:https://api.aquagreenagencies.com/uploads}")
-=======
-    
-    @Value("${app.upload.base-url:${API_BASE_URL}/uploads}")
->>>>>>> d8f1c069d61eaaf7d626e6da336086a811892b09
     private String uploadBaseUrl;
 
     @Value("${supabase.url:https://placeholder.supabase.co}")
@@ -206,4 +201,5 @@ public class FileUploadController {
     private String safe(String s) {
         return s != null ? s : "file";
     }
+
 }
