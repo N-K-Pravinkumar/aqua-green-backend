@@ -24,7 +24,8 @@ public class FileUploadController {
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
-
+    
+    //check
     @Value("${app.upload.base-url:https://api.aquagreenagencies.com/uploads}")
     private String uploadBaseUrl;
 
