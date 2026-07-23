@@ -10,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/customers")
@@ -73,7 +72,18 @@ public class CustomerController {
 
     /**
      * Full customer timeline — leads, enquiries, service requests, sales,
-     * quotations
+     * quotations.
+     *
+     * IMPORTANT: this must filter with a WHERE clause at the database level,
+     * not load entire tables and filter in Java. This endpoint previously did
+     * findAllByOrderByCreatedAtDesc() (no filter) for all five tables, then
+     * filtered in memory — which (a) pulls every row over the network from
+     * Supabase on every single call, and (b) triggers Hibernate's eager
+     * fetch of each row's linked Customer one-by-one (N+1), multiplying into
+     * hundreds of extra round-trips. Combined with Supabase being in a
+     * different region than the Railway app, that added up to 14+ second
+     * responses and client-side timeouts. Targeted findByMobile queries
+     * avoid both problems.
      */
     @GetMapping("/{id}/timeline")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getTimeline(@PathVariable Long id) {
@@ -82,37 +92,13 @@ public class CustomerController {
 
         String mobileNorm = com.aquagreen.util.MobileUtil.normalize(c.getMobile());
         final String mobile = mobileNorm != null ? mobileNorm : "";
-        String name = c.getName() != null ? c.getName().toLowerCase() : "";
 
         Map<String, Object> timeline = new LinkedHashMap<>();
-
-        timeline.put("leads", leadRepo.findAllByOrderByCreatedAtDesc().stream()
-                .filter(l -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(l.getMobile()))
-                        || name.equals(l.getName() != null ? l.getName().toLowerCase() : ""))
-                .collect(Collectors.toList()));
-
-        timeline.put("enquiries", enquiryRepo.findAllByOrderByCreatedAtDesc().stream()
-                .filter(e -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(e.getMobile()))
-                        || name.equals(e.getCustomerName() != null ? e.getCustomerName().toLowerCase() : ""))
-                .collect(Collectors.toList()));
-
-        timeline.put("serviceRequests", serviceRequestRepo.findAllByOrderByCreatedAtDesc().stream()
-                .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
-                        || (!mobile.isEmpty()
-                                && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
-                .collect(Collectors.toList()));
-
-        timeline.put("sales", saleRepo.findAllByOrderByCreatedAtDesc().stream()
-                .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
-                        || (!mobile.isEmpty()
-                                && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
-                .collect(Collectors.toList()));
-
-        timeline.put("quotations", quotationRepo.findAllByOrderByCreatedAtDesc().stream()
-                .filter(q -> (q.getCustomer() != null && id.equals(q.getCustomer().getId()))
-                        || (!mobile.isEmpty()
-                                && mobile.equals(com.aquagreen.util.MobileUtil.normalize(q.getCustomerMobile()))))
-                .collect(Collectors.toList()));
+        timeline.put("leads",           mobile.isEmpty() ? List.of() : leadRepo.findByMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("enquiries",       mobile.isEmpty() ? List.of() : enquiryRepo.findByMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("serviceRequests", mobile.isEmpty() ? List.of() : serviceRequestRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("sales",           mobile.isEmpty() ? List.of() : saleRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("quotations",      mobile.isEmpty() ? List.of() : quotationRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
 
         return ResponseEntity.ok(ApiResponse.success("OK", timeline));
     }
