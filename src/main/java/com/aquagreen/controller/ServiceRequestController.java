@@ -74,13 +74,60 @@ public class ServiceRequestController {
     public ResponseEntity<ApiResponse<ServiceRequest>> create(@RequestBody ServiceRequest sr) {
         sr.setId(null);
         sr.setTicketNumber(generateTicket());
-        sr.setInvoiceNumber(null);
+        // Respect an invoice number the caller already generated (e.g. the
+        // Billing wizard) — only blank it out if none was supplied.
+        if (sr.getInvoiceNumber() != null && sr.getInvoiceNumber().isBlank()) sr.setInvoiceNumber(null);
         sr.setStockDeducted(false);
+
+        // If this is being created already-COMPLETED (e.g. billed directly
+        // through the Billing wizard, skipping the usual PENDING→COMPLETED
+        // flow), set completedAt and the maintenance due-dates now — the
+        // @PreUpdate hook that normally does this never fires on insert.
+        if ("COMPLETED".equals(sr.getStatus())) {
+            if (sr.getCompletedAt() == null) sr.setCompletedAt(LocalDateTime.now());
+            if (sr.getNextFilterDueDate() == null)  sr.setNextFilterDueDate(sr.getCompletedAt().plusYears(1));
+            if (sr.getNextServiceDueDate() == null) sr.setNextServiceDueDate(sr.getCompletedAt().plusMonths(6));
+        }
+
         ServiceRequest saved = repo.save(sr);
+        deductStockForParts(saved);
+
         // Notify customer that ticket has been booked
         smsService.sendServiceBooked(saved.getCustomerMobile(), saved.getCustomerName(),
             saved.getTicketNumber(), saved.getAssignedTechnician());
         return ResponseEntity.ok(ApiResponse.success("Ticket created", saved));
+    }
+
+    /**
+     * Deduct stock for any spare parts logged with a stockItemId, and mark
+     * the service as stockDeducted so this never happens twice. Safe to call
+     * even if sparePartsJson is empty/blank.
+     */
+    private void deductStockForParts(ServiceRequest sr) {
+        if (Boolean.TRUE.equals(sr.getStockDeducted())) return;
+        if (sr.getSparePartsJson() == null || sr.getSparePartsJson().isBlank()) return;
+        boolean any = false;
+        try {
+            List<Map<String,Object>> parts = mapper.readValue(sr.getSparePartsJson(), List.class);
+            for (Map<String,Object> p : parts) {
+                Object idObj = p.get("stockItemId");
+                if (idObj == null) continue;
+                Long stockItemId = Long.valueOf(idObj.toString());
+                int qty = ((Number) p.getOrDefault("qty", 1)).intValue();
+                final boolean[] found = {false};
+                stockRepo.findById(stockItemId).ifPresent(stock -> {
+                    int newQty = Math.max(0, stock.getCurrentStock() - qty);
+                    stock.setCurrentStock(newQty);
+                    stockRepo.save(stock);
+                    found[0] = true;
+                    log.info("Stock deducted (on create): {} x{} → remaining {}", stock.getName(), qty, newQty);
+                });
+                if (found[0]) any = true;
+            }
+        } catch (Exception e) {
+            log.warn("Could not parse sparePartsJson for stock deduction: {}", e.getMessage());
+        }
+        if (any) { sr.setStockDeducted(true); repo.save(sr); }
     }
 
     // ── Update ────────────────────────────────────────────────────

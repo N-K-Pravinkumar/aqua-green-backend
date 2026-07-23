@@ -55,9 +55,11 @@ public class ServiceRequest {
         if (priority == null) priority = "MEDIUM";
         if (paymentStatus == null) paymentStatus = "PENDING";
         if (stockDeducted == null) stockDeducted = false;
+        customerMobile = com.aquagreen.util.MobileUtil.normalize(customerMobile);
     }
     @PreUpdate protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+        customerMobile = com.aquagreen.util.MobileUtil.normalize(customerMobile);
         // Auto-set due dates when completing a service
         if ("COMPLETED".equals(status) && completedAt != null) {
             if (nextFilterDueDate == null)  nextFilterDueDate  = completedAt.plusYears(1);

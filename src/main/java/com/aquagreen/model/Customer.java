@@ -18,6 +18,6 @@ public class Customer {
     @Builder.Default private Boolean active = true;
     @Column(updatable=false) private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    @PrePersist protected void onCreate(){ createdAt=LocalDateTime.now(); updatedAt=LocalDateTime.now(); }
-    @PreUpdate protected void onUpdate(){ updatedAt=LocalDateTime.now(); }
+    @PrePersist protected void onCreate(){ createdAt=LocalDateTime.now(); updatedAt=LocalDateTime.now(); mobile=com.aquagreen.util.MobileUtil.normalize(mobile); }
+    @PreUpdate protected void onUpdate(){ updatedAt=LocalDateTime.now(); mobile=com.aquagreen.util.MobileUtil.normalize(mobile); }
 }

@@ -71,34 +71,35 @@ public class CustomerController {
         Customer c = repo.findById(id)
             .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        String mobile = c.getMobile() != null ? c.getMobile().replaceAll("[^0-9]", "") : "";
+        String mobile = com.aquagreen.util.MobileUtil.normalize(c.getMobile());
+        if (mobile == null) mobile = "";
         String name   = c.getName()   != null ? c.getName().toLowerCase() : "";
 
         Map<String, Object> timeline = new LinkedHashMap<>();
 
         timeline.put("leads", leadRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(l -> mobile.equals(l.getMobile() != null ? l.getMobile().replaceAll("[^0-9]","") : "")
+            .filter(l -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(l.getMobile()))
                       || name.equals(l.getName() != null ? l.getName().toLowerCase() : ""))
             .collect(Collectors.toList()));
 
         timeline.put("enquiries", enquiryRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(e -> mobile.equals(e.getMobile() != null ? e.getMobile().replaceAll("[^0-9]","") : "")
+            .filter(e -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(e.getMobile()))
                       || name.equals(e.getCustomerName() != null ? e.getCustomerName().toLowerCase() : ""))
             .collect(Collectors.toList()));
 
         timeline.put("serviceRequests", serviceRequestRepo.findAllByOrderByCreatedAtDesc().stream()
             .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
-                      || mobile.equals(s.getCustomerMobile() != null ? s.getCustomerMobile().replaceAll("[^0-9]","") : ""))
+                      || (!mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
             .collect(Collectors.toList()));
 
         timeline.put("sales", saleRepo.findAllByOrderByCreatedAtDesc().stream()
             .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
-                      || mobile.equals(s.getCustomerMobile() != null ? s.getCustomerMobile().replaceAll("[^0-9]","") : ""))
+                      || (!mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
             .collect(Collectors.toList()));
 
         timeline.put("quotations", quotationRepo.findAllByOrderByCreatedAtDesc().stream()
             .filter(q -> (q.getCustomer() != null && id.equals(q.getCustomer().getId()))
-                      || mobile.equals(q.getCustomerMobile() != null ? q.getCustomerMobile().replaceAll("[^0-9]","") : ""))
+                      || (!mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(q.getCustomerMobile()))))
             .collect(Collectors.toList()));
 
         return ResponseEntity.ok(ApiResponse.success("OK", timeline));

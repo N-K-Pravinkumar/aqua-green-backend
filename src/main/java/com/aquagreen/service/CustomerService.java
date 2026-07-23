@@ -31,10 +31,7 @@ public class CustomerService {
         if (mobile == null || mobile.isBlank()) return null;
 
         // Normalise to at most 10 digits — must be a final variable for lambdas
-        String raw = mobile.replaceAll("[^0-9]", "");
-        final String normMobile = raw.length() > 10
-            ? raw.substring(raw.length() - 10)
-            : raw;
+        final String normMobile = com.aquagreen.util.MobileUtil.normalize(mobile);
 
         // ── Existing customer — enrich blank fields ─────────────
         java.util.Optional<Customer> existing = customerRepo.findByMobile(normMobile);

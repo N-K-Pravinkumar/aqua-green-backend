@@ -13,6 +13,7 @@ public class StockItem {
     @Column(length=1000) private String description;
     private String brand;
     private String imageUrl;
+    private java.math.BigDecimal price;
     @Builder.Default private Integer openingStock = 0;
     @Builder.Default private Integer currentStock = 0;
     @Builder.Default private Integer minStock = 5;

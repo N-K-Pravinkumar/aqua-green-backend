@@ -23,6 +23,6 @@ public class Quotation {
     @Builder.Default private Integer validityDays = 30;
     @Column(updatable=false) private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    @PrePersist protected void onCreate(){ createdAt=LocalDateTime.now(); updatedAt=LocalDateTime.now(); if(status==null)status="DRAFT"; }
-    @PreUpdate protected void onUpdate(){ updatedAt=LocalDateTime.now(); }
+    @PrePersist protected void onCreate(){ createdAt=LocalDateTime.now(); updatedAt=LocalDateTime.now(); if(status==null)status="DRAFT"; customerMobile=com.aquagreen.util.MobileUtil.normalize(customerMobile); }
+    @PreUpdate protected void onUpdate(){ updatedAt=LocalDateTime.now(); customerMobile=com.aquagreen.util.MobileUtil.normalize(customerMobile); }
 }

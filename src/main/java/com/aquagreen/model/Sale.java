@@ -35,6 +35,7 @@ public class Sale {
         if(createdAt==null) createdAt=LocalDateTime.now(); updatedAt=LocalDateTime.now();
         if (paymentStatus==null) paymentStatus="PAID";
         if (stockDeducted==null) stockDeducted=false;
+        customerMobile=com.aquagreen.util.MobileUtil.normalize(customerMobile);
     }
-    @PreUpdate protected void onUpdate() { updatedAt=LocalDateTime.now(); }
+    @PreUpdate protected void onUpdate() { updatedAt=LocalDateTime.now(); customerMobile=com.aquagreen.util.MobileUtil.normalize(customerMobile); }
 }
