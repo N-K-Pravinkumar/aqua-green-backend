@@ -12,4 +12,6 @@ public interface EnquiryRepository extends JpaRepository<Enquiry,Long> {
     List<Enquiry> findAllByOrderByCreatedAtDesc();
     List<Enquiry> findByStatusOrderByCreatedAtDesc(String status);
     long countByStatus(String status);
+    // Customer 360 history — match by mobile since Enquiry has no customer_id FK
+    List<Enquiry> findByMobileOrderByCreatedAtDesc(String mobile);
 }

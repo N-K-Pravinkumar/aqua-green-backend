@@ -19,4 +19,6 @@ public interface SaleRepository extends JpaRepository<Sale,Long> {
     @Query("SELECT MONTH(s.createdAt) as month, COALESCE(SUM(s.totalAmount),0) as total FROM Sale s WHERE YEAR(s.createdAt)=YEAR(CURRENT_DATE) GROUP BY MONTH(s.createdAt) ORDER BY MONTH(s.createdAt)")
     List<Object[]> monthlySaleTotals();
     long count();
+    // Customer 360 history
+    List<Sale> findByCustomerMobileOrderByCreatedAtDesc(String customerMobile);
 }

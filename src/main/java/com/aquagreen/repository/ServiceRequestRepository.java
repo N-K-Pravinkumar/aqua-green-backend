@@ -28,4 +28,11 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest,L
     List<ServiceRequest> findServicesDueBetween(
         @org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
         @org.springframework.data.repository.query.Param("to")   java.time.LocalDateTime to);
+
+    // Customer 360 history — match by mobile since not every ServiceRequest is linked via customer_id
+    List<ServiceRequest> findByCustomerMobileOrderByCreatedAtDesc(String customerMobile);
+
+    // Part-replacement / maintenance-reminder feature — scans completed services
+    // with logged spare parts to work out per-customer "last replaced" dates.
+    List<ServiceRequest> findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc(String status);
 }

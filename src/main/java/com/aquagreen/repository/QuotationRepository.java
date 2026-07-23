@@ -12,4 +12,6 @@ public interface QuotationRepository extends JpaRepository<Quotation,Long> {
     List<Quotation> findAllByOrderByCreatedAtDesc();
     List<Quotation> findByStatusOrderByCreatedAtDesc(String status);
     long countByStatus(String status);
+    // Customer 360 history
+    List<Quotation> findByCustomerMobileOrderByCreatedAtDesc(String customerMobile);
 }

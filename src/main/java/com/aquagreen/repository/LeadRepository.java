@@ -14,4 +14,6 @@ public interface LeadRepository extends JpaRepository<Lead,Long> {
     List<Lead> findAllByOrderByCreatedAtDesc();
     List<Lead> findByStatusOrderByCreatedAtDesc(String status);
     long countByStatus(String status);
+    // Customer 360 history — match by mobile since Lead has no customer_id FK
+    List<Lead> findByMobileOrderByCreatedAtDesc(String mobile);
 }
