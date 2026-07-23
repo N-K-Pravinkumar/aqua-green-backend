@@ -1,4 +1,5 @@
 package com.aquagreen.controller;
+
 import com.aquagreen.dto.ApiResponse;
 import com.aquagreen.model.Customer;
 import com.aquagreen.repository.*;
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@RestController @RequestMapping("/api/customers") @RequiredArgsConstructor
+@RestController
+@RequestMapping("/api/customers")
+@RequiredArgsConstructor
 public class CustomerController {
     private final CustomerRepository repo;
     private final LeadRepository leadRepo;
@@ -22,8 +25,8 @@ public class CustomerController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Customer>>> getAll(
-            @RequestParam(defaultValue="0")  int page,
-            @RequestParam(defaultValue="20") int size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         Pageable p = PageRequest.of(page, size);
         return ResponseEntity.ok(ApiResponse.success("OK", repo.findByActiveTrueOrderByCreatedAtDesc(p)));
     }
@@ -31,7 +34,7 @@ public class CustomerController {
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<Customer>>> search(@RequestParam String q) {
         return ResponseEntity.ok(ApiResponse.success("OK",
-            repo.findByNameContainingIgnoreCaseOrMobileContaining(q, q)));
+                repo.findByNameContainingIgnoreCaseOrMobileContaining(q, q)));
     }
 
     @GetMapping("/lookup")
@@ -43,8 +46,8 @@ public class CustomerController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Customer>> getById(@PathVariable Long id) {
         return repo.findById(id)
-            .map(c -> ResponseEntity.ok(ApiResponse.success("OK", c)))
-            .orElse(ResponseEntity.notFound().build());
+                .map(c -> ResponseEntity.ok(ApiResponse.success("OK", c)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
@@ -61,46 +64,55 @@ public class CustomerController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        repo.findById(id).ifPresent(c -> { c.setActive(false); repo.save(c); });
+        repo.findById(id).ifPresent(c -> {
+            c.setActive(false);
+            repo.save(c);
+        });
         return ResponseEntity.ok(ApiResponse.success("Deleted", null));
     }
 
-    /** Full customer timeline — leads, enquiries, service requests, sales, quotations */
+    /**
+     * Full customer timeline — leads, enquiries, service requests, sales,
+     * quotations
+     */
     @GetMapping("/{id}/timeline")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getTimeline(@PathVariable Long id) {
         Customer c = repo.findById(id)
-            .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        String mobile = com.aquagreen.util.MobileUtil.normalize(c.getMobile());
-        if (mobile == null) mobile = "";
-        String name   = c.getName()   != null ? c.getName().toLowerCase() : "";
+        String mobileNorm = com.aquagreen.util.MobileUtil.normalize(c.getMobile());
+        final String mobile = mobileNorm != null ? mobileNorm : "";
+        String name = c.getName() != null ? c.getName().toLowerCase() : "";
 
         Map<String, Object> timeline = new LinkedHashMap<>();
 
         timeline.put("leads", leadRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(l -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(l.getMobile()))
-                      || name.equals(l.getName() != null ? l.getName().toLowerCase() : ""))
-            .collect(Collectors.toList()));
+                .filter(l -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(l.getMobile()))
+                        || name.equals(l.getName() != null ? l.getName().toLowerCase() : ""))
+                .collect(Collectors.toList()));
 
         timeline.put("enquiries", enquiryRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(e -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(e.getMobile()))
-                      || name.equals(e.getCustomerName() != null ? e.getCustomerName().toLowerCase() : ""))
-            .collect(Collectors.toList()));
+                .filter(e -> !mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(e.getMobile()))
+                        || name.equals(e.getCustomerName() != null ? e.getCustomerName().toLowerCase() : ""))
+                .collect(Collectors.toList()));
 
         timeline.put("serviceRequests", serviceRequestRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
-                      || (!mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
-            .collect(Collectors.toList()));
+                .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
+                        || (!mobile.isEmpty()
+                                && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
+                .collect(Collectors.toList()));
 
         timeline.put("sales", saleRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
-                      || (!mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
-            .collect(Collectors.toList()));
+                .filter(s -> (s.getCustomer() != null && id.equals(s.getCustomer().getId()))
+                        || (!mobile.isEmpty()
+                                && mobile.equals(com.aquagreen.util.MobileUtil.normalize(s.getCustomerMobile()))))
+                .collect(Collectors.toList()));
 
         timeline.put("quotations", quotationRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(q -> (q.getCustomer() != null && id.equals(q.getCustomer().getId()))
-                      || (!mobile.isEmpty() && mobile.equals(com.aquagreen.util.MobileUtil.normalize(q.getCustomerMobile()))))
-            .collect(Collectors.toList()));
+                .filter(q -> (q.getCustomer() != null && id.equals(q.getCustomer().getId()))
+                        || (!mobile.isEmpty()
+                                && mobile.equals(com.aquagreen.util.MobileUtil.normalize(q.getCustomerMobile()))))
+                .collect(Collectors.toList()));
 
         return ResponseEntity.ok(ApiResponse.success("OK", timeline));
     }
