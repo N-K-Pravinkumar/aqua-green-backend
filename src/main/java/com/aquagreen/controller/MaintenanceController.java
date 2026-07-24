@@ -52,9 +52,12 @@ public class MaintenanceController {
     @GetMapping("/overdue")
     public ResponseEntity<ApiResponse<List<Map<String,Object>>>> overdue(
             @RequestParam String partName,
+            @RequestParam(required = false) Integer days,
             @RequestParam(defaultValue = "6") int months) {
 
-        LocalDateTime cutoff = LocalDateTime.now().minusMonths(months);
+        // `days` is more precise (e.g. exactly 90 days) — if given, it wins.
+        // Falls back to `months` for anything still calling the old way.
+        LocalDateTime cutoff = (days != null) ? LocalDateTime.now().minusDays(days) : LocalDateTime.now().minusMonths(months);
         String needle = partName.trim().toLowerCase();
 
         List<ServiceRequest> completed = repo.findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc("COMPLETED");

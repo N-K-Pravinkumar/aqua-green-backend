@@ -94,11 +94,13 @@ public class CustomerController {
         final String mobile = mobileNorm != null ? mobileNorm : "";
 
         Map<String, Object> timeline = new LinkedHashMap<>();
-        timeline.put("leads",           mobile.isEmpty() ? List.of() : leadRepo.findByMobileOrderByCreatedAtDesc(mobile));
-        timeline.put("enquiries",       mobile.isEmpty() ? List.of() : enquiryRepo.findByMobileOrderByCreatedAtDesc(mobile));
-        timeline.put("serviceRequests", mobile.isEmpty() ? List.of() : serviceRequestRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
-        timeline.put("sales",           mobile.isEmpty() ? List.of() : saleRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
-        timeline.put("quotations",      mobile.isEmpty() ? List.of() : quotationRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("leads", mobile.isEmpty() ? List.of() : leadRepo.findByMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("enquiries", mobile.isEmpty() ? List.of() : enquiryRepo.findByMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("serviceRequests",
+                mobile.isEmpty() ? List.of() : serviceRequestRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("sales", mobile.isEmpty() ? List.of() : saleRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("quotations",
+                mobile.isEmpty() ? List.of() : quotationRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
 
         return ResponseEntity.ok(ApiResponse.success("OK", timeline));
     }
