@@ -57,6 +57,20 @@ public class SaleController {
         return ResponseEntity.ok(ApiResponse.success("OK", result));
     }
 
+    /**
+     * Bar-chart data — revenue bucketed by week or month, for the analytics
+     * chart. granularity=week|month, count=how many buckets back.
+     */
+    @GetMapping("/revenue-chart")
+    public ResponseEntity<ApiResponse<List<Map<String,Object>>>> revenueChart(
+            @RequestParam(defaultValue = "week") String granularity,
+            @RequestParam(defaultValue = "8") int count) {
+        return ResponseEntity.ok(ApiResponse.success("OK",
+            com.aquagreen.util.ChartBucketing.bucket(
+                repo.findAmountsSince(com.aquagreen.util.ChartBucketing.since(granularity, count)),
+                granularity, count)));
+    }
+
     @GetMapping("/{id}") public ResponseEntity<ApiResponse<Sale>> getById(@PathVariable Long id) {
         return repo.findById(id).map(s->ResponseEntity.ok(ApiResponse.success("OK",s))).orElse(ResponseEntity.notFound().build());
     }

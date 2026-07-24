@@ -29,7 +29,12 @@ public interface SaleRepository extends JpaRepository<Sale,Long> {
     List<Sale> findByCustomerMobileOrderByCreatedAtDesc(String customerMobile);
     @Query("SELECT s.saleCode FROM Sale s WHERE s.saleCode IS NOT NULL")
     List<String> findAllSaleCodes();
+    @Query("SELECT DISTINCT s.productName FROM Sale s WHERE s.productName IS NOT NULL AND s.productName <> ''")
+    List<String> findDistinctProductNames();
     List<Sale> findBySaleCodeIsNullOrderByIdAsc();
     // Idempotency check for bulk imports — lets the same import be safely re-run
     boolean existsByCustomerMobileAndCreatedAtAndTotalAmount(String customerMobile, java.time.LocalDateTime createdAt, BigDecimal totalAmount);
+    // Lightweight projection for bar-chart bucketing — [0]=createdAt [1]=totalAmount
+    @Query("SELECT s.createdAt, s.totalAmount FROM Sale s WHERE s.createdAt >= :since")
+    List<Object[]> findAmountsSince(@org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
 }

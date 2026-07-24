@@ -1,7 +1,6 @@
 package com.aquagreen.controller;
 
 import com.aquagreen.dto.ApiResponse;
-import com.aquagreen.model.ServiceRequest;
 import com.aquagreen.repository.SaleRepository;
 import com.aquagreen.repository.ServiceRequestRepository;
 import com.aquagreen.repository.StockItemRepository;
@@ -23,6 +22,14 @@ import java.util.*;
  * For any part name, we can work out the most recent replacement date per
  * customer and flag anyone whose last replacement is older than a chosen
  * interval (3 / 6 / 12 months, or any custom number).
+ *
+ * IMPORTANT: both endpoints here use lightweight column projections
+ * (findCompletedWithPartsProjection / findDistinctProductNames) instead of
+ * loading full entities. ServiceRequest.customer and Sale.customer are both
+ * EAGER-fetched relations — loading full entities via findAll() would
+ * trigger one extra DB round-trip PER ROW just to fetch each customer,
+ * which is exactly what caused this to time out once the tables grew past
+ * a few hundred rows.
  */
 @RestController @RequestMapping("/api/maintenance") @RequiredArgsConstructor
 public class MaintenanceController {
@@ -35,23 +42,22 @@ public class MaintenanceController {
     /**
      * Suggestion list for the filter dropdown — merges part names actually
      * logged against completed services with your real catalog (sold
-     * products + spares/stock), so options like "Membrane" or "Carbon
-     * Filter" show up even before any service has used that exact wording.
-     * The filter box still accepts free typing beyond this list too.
+     * products + spares/stock). The filter box still accepts free typing
+     * beyond this list too.
      */
     @GetMapping("/parts")
     public ResponseEntity<ApiResponse<List<String>>> partsUsed() {
         TreeSet<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
-        List<ServiceRequest> completed = repo.findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc("COMPLETED");
-        for (ServiceRequest sr : completed) {
-            for (Map<String,Object> p : parseParts(sr.getSparePartsJson())) {
+        for (Object[] row : repo.findCompletedWithPartsProjection()) {
+            String sparePartsJson = (String) row[4];
+            for (Map<String,Object> p : parseParts(sparePartsJson)) {
                 Object n = p.get("name");
                 if (n != null && !n.toString().isBlank()) names.add(n.toString().trim());
             }
         }
-        for (var sale : saleRepo.findAll()) {
-            if (sale.getProductName() != null && !sale.getProductName().isBlank()) names.add(sale.getProductName().trim());
+        for (String productName : saleRepo.findDistinctProductNames()) {
+            names.add(productName.trim());
         }
         for (var stock : stockRepo.findAll()) {
             if (stock.getName() != null && !stock.getName().isBlank()) names.add(stock.getName().trim());
@@ -74,40 +80,45 @@ public class MaintenanceController {
             @RequestParam(defaultValue = "6") int months) {
 
         // `days` is more precise (e.g. exactly 90 days) — if given, it wins.
-        // Falls back to `months` for anything still calling the old way.
         LocalDateTime cutoff = (days != null) ? LocalDateTime.now().minusDays(days) : LocalDateTime.now().minusMonths(months);
         String needle = partName.trim().toLowerCase();
 
-        List<ServiceRequest> completed = repo.findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc("COMPLETED");
+        List<Object[]> rows = repo.findCompletedWithPartsProjection();
 
-        // customerMobile (digits only) -> most recent ServiceRequest that replaced this part
-        Map<String, ServiceRequest> latestByCustomer = new LinkedHashMap<>();
-        for (ServiceRequest sr : completed) {
-            if (sr.getCompletedAt() == null || sr.getCustomerMobile() == null) continue;
-            boolean matches = parseParts(sr.getSparePartsJson()).stream()
+        // customerMobile (digits only) -> most recent matching row
+        Map<String, Object[]> latestByCustomer = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String customerMobile = (String) row[0];
+            String sparePartsJson = (String) row[4];
+            LocalDateTime completedAt = (LocalDateTime) row[5];
+            if (completedAt == null || customerMobile == null) continue;
+
+            boolean matches = parseParts(sparePartsJson).stream()
                 .anyMatch(p -> p.get("name") != null && p.get("name").toString().toLowerCase().contains(needle));
             if (!matches) continue;
-            String key = sr.getCustomerMobile().replaceAll("[^0-9]", "");
+
+            String key = customerMobile.replaceAll("[^0-9]", "");
             if (key.isEmpty()) continue;
-            ServiceRequest existing = latestByCustomer.get(key);
-            if (existing == null || sr.getCompletedAt().isAfter(existing.getCompletedAt())) {
-                latestByCustomer.put(key, sr);
+            Object[] existing = latestByCustomer.get(key);
+            if (existing == null || completedAt.isAfter((LocalDateTime) existing[5])) {
+                latestByCustomer.put(key, row);
             }
         }
 
         List<Map<String,Object>> result = new ArrayList<>();
-        for (ServiceRequest sr : latestByCustomer.values()) {
-            if (sr.getCompletedAt().isBefore(cutoff)) {
-                Map<String,Object> row = new LinkedHashMap<>();
-                row.put("customerId", sr.getCustomer() != null ? sr.getCustomer().getId() : null);
-                row.put("customerName", sr.getCustomerName());
-                row.put("customerMobile", sr.getCustomerMobile());
-                row.put("customerAddress", sr.getCustomerAddress());
-                row.put("productName", sr.getProductName());
-                row.put("lastReplacedDate", sr.getCompletedAt());
-                row.put("daysSinceReplaced", ChronoUnit.DAYS.between(sr.getCompletedAt(), LocalDateTime.now()));
-                row.put("ticketNumber", sr.getTicketNumber());
-                result.add(row);
+        for (Object[] row : latestByCustomer.values()) {
+            LocalDateTime completedAt = (LocalDateTime) row[5];
+            if (completedAt.isBefore(cutoff)) {
+                Map<String,Object> out = new LinkedHashMap<>();
+                out.put("customerMobile", row[0]);
+                out.put("customerName", row[1]);
+                out.put("customerAddress", row[2]);
+                out.put("productName", row[3]);
+                out.put("lastReplacedDate", completedAt);
+                out.put("daysSinceReplaced", ChronoUnit.DAYS.between(completedAt, LocalDateTime.now()));
+                out.put("ticketNumber", row[6]);
+                out.put("customerId", row[7]);
+                result.add(out);
             }
         }
         result.sort((a, b) -> ((LocalDateTime) a.get("lastReplacedDate")).compareTo((LocalDateTime) b.get("lastReplacedDate")));

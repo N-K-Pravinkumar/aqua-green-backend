@@ -86,6 +86,17 @@ public class ServiceRequestController {
         return ResponseEntity.ok(ApiResponse.success("OK", result));
     }
 
+    /** Bar-chart data — revenue bucketed by week or month (mirrors /sales/revenue-chart). */
+    @GetMapping("/revenue-chart")
+    public ResponseEntity<ApiResponse<List<Map<String,Object>>>> revenueChart(
+            @RequestParam(defaultValue = "week") String granularity,
+            @RequestParam(defaultValue = "8") int count) {
+        return ResponseEntity.ok(ApiResponse.success("OK",
+            com.aquagreen.util.ChartBucketing.bucket(
+                repo.findAmountsSince(com.aquagreen.util.ChartBucketing.since(granularity, count)),
+                granularity, count)));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ServiceRequest>> getById(@PathVariable Long id) {
         return repo.findById(id).map(s -> ResponseEntity.ok(ApiResponse.success("OK", s)))

@@ -36,11 +36,49 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest,L
     // with logged spare parts to work out per-customer "last replaced" dates.
     List<ServiceRequest> findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc(String status);
 
+    /**
+     * Lightweight version of the above for the Maintenance feature — selects
+     * only the columns actually needed instead of full entities. The plain
+     * entity version above forces Hibernate to resolve the EAGER `customer`
+     * association on every single row (N+1), which was fine at small data
+     * volumes but times out once there are 1000+ completed tickets.
+     * Columns, in order: id, customerId, customerName, customerMobile,
+     * customerAddress, productName, completedAt, sparePartsJson, ticketNumber.
+     */
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT sr.id, sr.customer.id, sr.customerName, sr.customerMobile, sr.customerAddress, " +
+        "sr.productName, sr.completedAt, sr.sparePartsJson, sr.ticketNumber " +
+        "FROM ServiceRequest sr WHERE sr.status = 'COMPLETED' AND sr.sparePartsJson IS NOT NULL")
+    List<Object[]> findCompletedWithPartsLite();
+
     @org.springframework.data.jpa.repository.Query("SELECT s.serviceCode FROM ServiceRequest s WHERE s.serviceCode IS NOT NULL")
     List<String> findAllServiceCodes();
     List<ServiceRequest> findByServiceCodeIsNullOrderByIdAsc();
     // Idempotency check for bulk imports — lets the same import be safely re-run
     boolean existsByCustomerMobileAndCompletedAtAndTotalBillAmount(String customerMobile, java.time.LocalDateTime completedAt, java.math.BigDecimal totalBillAmount);
+
+    /**
+     * Lightweight projection for the Maintenance feature — selects only the
+     * columns it actually needs, WITHOUT loading full ServiceRequest
+     * entities (which would trigger the EAGER `customer` join once PER ROW
+     * via Hibernate's entity loading — this is what caused this endpoint to
+     * time out once the table grew past a few hundred rows). A single JOIN
+     * inside one query, as below, is fine — it's still just one round trip.
+     * Columns: [0]=customerMobile [1]=customerName [2]=customerAddress
+     *          [3]=productName [4]=sparePartsJson [5]=completedAt
+     *          [6]=ticketNumber [7]=customerId
+     */
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT sr.customerMobile, sr.customerName, sr.customerAddress, sr.productName, " +
+        "sr.sparePartsJson, sr.completedAt, sr.ticketNumber, sr.customer.id " +
+        "FROM ServiceRequest sr WHERE sr.status = 'COMPLETED' AND sr.sparePartsJson IS NOT NULL " +
+        "ORDER BY sr.completedAt DESC")
+    List<Object[]> findCompletedWithPartsProjection();
+
+    // Lightweight projection for bar-chart bucketing — [0]=completedAt [1]=totalBillAmount
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT sr.completedAt, sr.totalBillAmount FROM ServiceRequest sr WHERE sr.completedAt >= :since")
+    List<Object[]> findAmountsSince(@org.springframework.data.repository.query.Param("since") java.time.LocalDateTime since);
 
     @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(sr.totalBillAmount),0) FROM ServiceRequest sr WHERE sr.completedAt BETWEEN :from AND :to")
     java.math.BigDecimal sumRevenueBetween(@org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
