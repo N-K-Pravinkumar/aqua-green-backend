@@ -40,7 +40,7 @@ public class LegacySalesImportController {
         String text = body.getOrDefault("text", "");
         String[] lines = text.split("\r?\n");
 
-        int created = 0, skipped = 0, phonesLinked = 0;
+        int created = 0, skipped = 0, duplicates = 0, phonesLinked = 0;
         List<String> errors = new ArrayList<>();
         List<String> existingCodes = new ArrayList<>(saleRepo.findAllSaleCodes());
 
@@ -90,6 +90,14 @@ public class LegacySalesImportController {
                 LocalDateTime saleDate = dateCell.isEmpty() ? LocalDateTime.now() : parseDate(dateCell);
                 BigDecimal amount = amountCell.isEmpty() ? BigDecimal.ZERO : new BigDecimal(amountCell);
 
+                // Same customer + same date + same amount already imported? Skip — this is
+                // what makes it safe to click Import again if a previous attempt timed out
+                // partway through instead of failing outright.
+                if (saleRepo.existsByCustomerMobileAndCreatedAtAndTotalAmount(primaryPhone, saleDate, amount)) {
+                    duplicates++;
+                    continue;
+                }
+
                 String saleCode = com.aquagreen.util.CodeGenerator.next("SALE", existingCodes, 3);
                 existingCodes.add(saleCode);
 
@@ -121,9 +129,10 @@ public class LegacySalesImportController {
         Map<String,Object> result = new LinkedHashMap<>();
         result.put("created", created);
         result.put("skipped", skipped);
+        result.put("duplicates", duplicates);
         result.put("phonesLinked", phonesLinked);
         result.put("errors", errors);
-        return ResponseEntity.ok(ApiResponse.success(created + " sale(s) imported, " + skipped + " skipped", result));
+        return ResponseEntity.ok(ApiResponse.success(created + " sale(s) imported, " + duplicates + " already existed (skipped), " + skipped + " had bad data (skipped)", result));
     }
 
     private String preview(String line) {

@@ -24,4 +24,6 @@ public interface SaleRepository extends JpaRepository<Sale,Long> {
     @Query("SELECT s.saleCode FROM Sale s WHERE s.saleCode IS NOT NULL")
     List<String> findAllSaleCodes();
     List<Sale> findBySaleCodeIsNullOrderByIdAsc();
+    // Idempotency check for bulk imports — lets the same import be safely re-run
+    boolean existsByCustomerMobileAndCreatedAtAndTotalAmount(String customerMobile, java.time.LocalDateTime createdAt, BigDecimal totalAmount);
 }

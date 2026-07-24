@@ -39,4 +39,6 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest,L
     @org.springframework.data.jpa.repository.Query("SELECT s.serviceCode FROM ServiceRequest s WHERE s.serviceCode IS NOT NULL")
     List<String> findAllServiceCodes();
     List<ServiceRequest> findByServiceCodeIsNullOrderByIdAsc();
+    // Idempotency check for bulk imports — lets the same import be safely re-run
+    boolean existsByCustomerMobileAndCompletedAtAndTotalBillAmount(String customerMobile, java.time.LocalDateTime completedAt, java.math.BigDecimal totalBillAmount);
 }

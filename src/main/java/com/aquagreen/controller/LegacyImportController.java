@@ -46,7 +46,7 @@ public class LegacyImportController {
         String text = body.getOrDefault("text", "");
         String[] lines = text.split("\r?\n");
 
-        int created = 0, skipped = 0;
+        int created = 0, skipped = 0, duplicates = 0;
         List<String> errors = new ArrayList<>();
         List<String> existingCodes = new ArrayList<>(repo.findAllServiceCodes());
 
@@ -109,6 +109,13 @@ public class LegacyImportController {
                 BigDecimal totalBill     = total != null ? total : partsSum;
                 BigDecimal serviceCharge = total != null ? total.subtract(partsSum).max(BigDecimal.ZERO) : BigDecimal.ZERO;
 
+                // Same customer + same date + same total already imported? Skip — makes
+                // it safe to click Import again if a previous attempt timed out partway.
+                if (repo.existsByCustomerMobileAndCompletedAtAndTotalBillAmount(mobile, completedAt, totalBill)) {
+                    duplicates++;
+                    continue;
+                }
+
                 Customer cust = customerService.findOrCreate(name, mobile, null, address, null, "LEGACY_IMPORT");
 
                 String svcCode = com.aquagreen.util.CodeGenerator.next("SERV", existingCodes, 3);
@@ -144,8 +151,9 @@ public class LegacyImportController {
         Map<String,Object> result = new LinkedHashMap<>();
         result.put("created", created);
         result.put("skipped", skipped);
+        result.put("duplicates", duplicates);
         result.put("errors", errors);
-        return ResponseEntity.ok(ApiResponse.success(created + " bill(s) imported, " + skipped + " skipped", result));
+        return ResponseEntity.ok(ApiResponse.success(created + " bill(s) imported, " + duplicates + " already existed (skipped), " + skipped + " had bad data (skipped)", result));
     }
 
     private String preview(String line) {
