@@ -35,4 +35,8 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest,L
     // Part-replacement / maintenance-reminder feature — scans completed services
     // with logged spare parts to work out per-customer "last replaced" dates.
     List<ServiceRequest> findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc(String status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT s.serviceCode FROM ServiceRequest s WHERE s.serviceCode IS NOT NULL")
+    List<String> findAllServiceCodes();
+    List<ServiceRequest> findByServiceCodeIsNullOrderByIdAsc();
 }

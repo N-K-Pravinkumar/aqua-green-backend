@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Entity @Table(name="service_requests") @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class ServiceRequest {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+    @Column(unique=true, length=20) private String serviceCode; // e.g. SERV001
     private String ticketNumber;
     @ManyToOne(fetch=FetchType.EAGER) @JoinColumn(name="customer_id")
     private Customer customer;

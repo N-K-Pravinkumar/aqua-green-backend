@@ -14,4 +14,7 @@ public interface CustomerRepository extends JpaRepository<Customer,Long> {
     Page<Customer> findByNameContainingIgnoreCaseOrMobileContaining(String name, String mobile, Pageable pageable);
     java.util.Optional<Customer> findByMobile(String mobile);
     long countByActiveTrue();
+    @org.springframework.data.jpa.repository.Query("SELECT c.customerCode FROM Customer c WHERE c.customerCode IS NOT NULL")
+    List<String> findAllCustomerCodes();
+    List<Customer> findByCustomerCodeIsNullOrderByIdAsc();
 }

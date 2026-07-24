@@ -48,7 +48,9 @@ public class CustomerService {
         }
 
         // ── New customer ─────────────────────────────────────────
+        String code = com.aquagreen.util.CodeGenerator.next("AGA", customerRepo.findAllCustomerCodes(), 3);
         Customer c = Customer.builder()
+            .customerCode(code)
             .name(name != null ? name.trim() : "Unknown")
             .mobile(normMobile)
             .email(email)

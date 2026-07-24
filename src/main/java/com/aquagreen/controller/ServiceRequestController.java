@@ -73,6 +73,8 @@ public class ServiceRequestController {
     @PostMapping
     public ResponseEntity<ApiResponse<ServiceRequest>> create(@RequestBody ServiceRequest sr) {
         sr.setId(null);
+        if (sr.getServiceCode() == null || sr.getServiceCode().isBlank())
+            sr.setServiceCode(com.aquagreen.util.CodeGenerator.next("SERV", repo.findAllServiceCodes(), 3));
         sr.setTicketNumber(generateTicket());
         // Respect an invoice number the caller already generated (e.g. the
         // Billing wizard) — only blank it out if none was supplied.

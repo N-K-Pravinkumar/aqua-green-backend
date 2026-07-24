@@ -48,6 +48,8 @@ public class SaleController {
     @PostMapping
     public ResponseEntity<ApiResponse<Sale>> create(@RequestBody Sale s) {
         s.setId(null);
+        if (s.getSaleCode() == null || s.getSaleCode().isBlank())
+            s.setSaleCode(com.aquagreen.util.CodeGenerator.next("SALE", repo.findAllSaleCodes(), 3));
         if (s.getInvoiceNumber() == null)
             s.setInvoiceNumber("INV-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"))
                 + "-" + String.format("%04d",(int)(Math.random()*9000)+1000));

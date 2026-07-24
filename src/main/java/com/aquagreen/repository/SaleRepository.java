@@ -21,4 +21,7 @@ public interface SaleRepository extends JpaRepository<Sale,Long> {
     long count();
     // Customer 360 history
     List<Sale> findByCustomerMobileOrderByCreatedAtDesc(String customerMobile);
+    @Query("SELECT s.saleCode FROM Sale s WHERE s.saleCode IS NOT NULL")
+    List<String> findAllSaleCodes();
+    List<Sale> findBySaleCodeIsNullOrderByIdAsc();
 }
