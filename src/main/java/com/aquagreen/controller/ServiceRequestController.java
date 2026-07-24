@@ -74,6 +74,18 @@ public class ServiceRequestController {
         return ResponseEntity.ok(ApiResponse.success("OK", result));
     }
 
+    /** Revenue analytics for a custom date range (mirrors /sales/analytics). */
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<Map<String,Object>>> analytics(
+            @RequestParam String from, @RequestParam String to) {
+        java.time.LocalDateTime f = java.time.LocalDateTime.parse(from);
+        java.time.LocalDateTime t = java.time.LocalDateTime.parse(to);
+        Map<String,Object> result = new LinkedHashMap<>();
+        result.put("revenue", repo.sumRevenueBetween(f, t));
+        result.put("count", repo.countBetween(f, t));
+        return ResponseEntity.ok(ApiResponse.success("OK", result));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ServiceRequest>> getById(@PathVariable Long id) {
         return repo.findById(id).map(s -> ResponseEntity.ok(ApiResponse.success("OK", s)))

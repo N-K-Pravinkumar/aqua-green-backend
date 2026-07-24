@@ -29,8 +29,14 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         seedProducts(); seedServices(); seedGallery(); seedAwards();
-        seedCustomers(); seedEmployees(); seedLeads(); seedEnquiries();
-        seedSales(); seedServiceRequests(); seedQuotations(); seedStock(); seedBlogs();
+        seedEmployees(); seedStock(); seedBlogs();
+        // NOTE: seedCustomers(), seedLeads(), seedEnquiries(), seedSales(),
+        // seedServiceRequests(), and seedQuotations() are deliberately NOT
+        // called — they only ever generated fake demo records (Rajesh Kumar,
+        // Priya Sundaram, etc.). Real customer/lead/sale/service data now
+        // comes from the actual business (website submissions, admin entry,
+        // and the legacy data import tools) — this app should never
+        // auto-generate business records again, even on a fresh database.
         log.info("=== AGA Data Loaded ===");
     }
 
@@ -101,20 +107,6 @@ public class DataSeeder implements CommandLineRunner {
         ));
     }
 
-    void seedCustomers() {
-        if (customerRepo.count() > 0) return;
-        customerRepo.saveAll(List.of(
-            Customer.builder().name("Rajesh Kumar").mobile("9876543210").email("rajesh@gmail.com").address("12, Gandhi Nagar, Saravanampatti").city("Coimbatore").customerType("RESIDENTIAL").active(true).build(),
-            Customer.builder().name("Priya Sundaram").mobile("8765432109").email("priya.s@gmail.com").address("34, Anna Nagar, Ganapathy").city("Coimbatore").customerType("RESIDENTIAL").active(true).build(),
-            Customer.builder().name("Murugan V").mobile("7654321098").email("murugan.v@gmail.com").address("56, Nehru Street, Peelamedu").city("Coimbatore").customerType("RESIDENTIAL").active(true).build(),
-            Customer.builder().name("Lakshmi R").mobile("6543210987").email("lakshmi.r@yahoo.com").address("78, Kamarajar Road, RS Puram").city("Coimbatore").customerType("RESIDENTIAL").active(true).build(),
-            Customer.builder().name("Dinesh Kumar").mobile("9988776655").email("dinesh.k@company.com").address("90, Industrial Estate, Kurichi").city("Coimbatore").customerType("COMMERCIAL").gstNumber("33ABCDE1234F1Z5").active(true).build(),
-            Customer.builder().name("Kavitha Devi").mobile("8877665544").email("kavitha.d@gmail.com").address("23, KK Pudur, Saibaba Colony").city("Coimbatore").customerType("RESIDENTIAL").active(true).build(),
-            Customer.builder().name("Suresh Nair").mobile("9765432100").email("suresh.nair@office.com").address("45, Avinashi Road, Peelamedu").city("Coimbatore").customerType("COMMERCIAL").active(true).build(),
-            Customer.builder().name("Gomathi D").mobile("8654321099").email("gomathi.d@hotel.com").address("67, Race Course, RS Puram").city("Coimbatore").customerType("COMMERCIAL").gstNumber("33XYZAB5678G1H3").active(true).build()
-        ));
-    }
-
     void seedEmployees() {
         if (employeeRepo.count() > 0) return;
         employeeRepo.saveAll(List.of(
@@ -123,73 +115,6 @@ public class DataSeeder implements CommandLineRunner {
             Employee.builder().name("Senthil K").mobile("9800033333").email("senthil@aquagreen.com").role("SALES_EXECUTIVE").joiningDate(LocalDate.of(2021,6,1)).salary(new BigDecimal("25000")).avatarInitials("SK").active(true).build(),
             Employee.builder().name("Karthik R").mobile("9800044444").email("karthik@aquagreen.com").role("TECHNICIAN").joiningDate(LocalDate.of(2022,9,10)).salary(new BigDecimal("20000")).avatarInitials("KR").active(true).build(),
             Employee.builder().name("Ravi T").mobile("9800055555").email("ravi@aquagreen.com").role("ACCOUNTANT").joiningDate(LocalDate.of(2020,1,5)).salary(new BigDecimal("28000")).avatarInitials("RT").active(true).build()
-        ));
-    }
-
-    void seedLeads() {
-        if (leadRepo.count() > 0) return;
-        leadRepo.saveAll(List.of(
-            Lead.builder().name("Amutha M").mobile("9876500001").email("amutha@gmail.com").city("Saravanampatti").requirement("Domestic RO 12L — for 4-member family").source("WEBSITE").assignedEmployee("Senthil K").status("NEW").createdAt(LocalDateTime.now().minusHours(2)).updatedAt(LocalDateTime.now().minusHours(2)).build(),
-            Lead.builder().name("Balamurugan R").mobile("8765400002").city("Coimbatore").requirement("AMC Service for existing RO").source("WHATSAPP").assignedEmployee("Murugan K").status("CONTACTED").notes("Customer wants weekend service.").createdAt(LocalDateTime.now().minusDays(1)).updatedAt(LocalDateTime.now().minusHours(5)).build(),
-            Lead.builder().name("Chandrika P").mobile("7654300003").city("Ganapathy").requirement("Commercial RO for restaurant 50LPH").source("GOOGLE_ADS").assignedEmployee("Senthil K").status("QUOTATION_SENT").notes("Quotation sent. Follow up Friday.").createdAt(LocalDateTime.now().minusDays(3)).updatedAt(LocalDateTime.now().minusDays(1)).build(),
-            Lead.builder().name("Deepak S").mobile("6543200004").city("Peelamedu").requirement("Industrial RO 100 LPH for factory").source("REFERRAL").assignedEmployee("Senthil K").status("FOLLOW_UP").notes("Wants site visit.").createdAt(LocalDateTime.now().minusDays(5)).updatedAt(LocalDateTime.now().minusDays(2)).build(),
-            Lead.builder().name("Eswari K").mobile("9988500005").city("RS Puram").requirement("Budget RO for home").source("FACEBOOK").assignedEmployee("Murugan K").status("CONVERTED").notes("Purchased AGA Classic 7L.").createdAt(LocalDateTime.now().minusDays(10)).updatedAt(LocalDateTime.now().minusDays(4)).build(),
-            Lead.builder().name("Fatima N").mobile("8877500006").city("Coimbatore").requirement("Hospital RO 200 LPH").source("GOOGLE_ADS").assignedEmployee("Senthil K").status("LOST").notes("Went with competitor.").createdAt(LocalDateTime.now().minusDays(15)).updatedAt(LocalDateTime.now().minusDays(8)).build(),
-            Lead.builder().name("Ganesan T").mobile("9765500007").city("Neelikonampalayam").requirement("RO filter change + service").source("WEBSITE").assignedEmployee("Karthik R").status("NEW").createdAt(LocalDateTime.now().minusHours(30)).updatedAt(LocalDateTime.now().minusHours(30)).build(),
-            Lead.builder().name("Hema S").mobile("8654500008").city("Saibaba Colony").requirement("New domestic RO for flat").source("INSTAGRAM").assignedEmployee("Senthil K").status("CONTACTED").notes("Interested in Pro RO+UV 15L.").createdAt(LocalDateTime.now().minusDays(2)).updatedAt(LocalDateTime.now().minusDays(1)).build()
-        ));
-    }
-
-    void seedEnquiries() {
-        if (enquiryRepo.count() > 0) return;
-        var prods = productRepo.findAll();
-        Product p1 = prods.isEmpty()?null:prods.get(0);
-        Product p2 = prods.size()>1?prods.get(1):null;
-        enquiryRepo.saveAll(List.of(
-            Enquiry.builder().customerName("Rajesh Kumar").mobile("9876543210").email("rajesh@gmail.com").address("Saravanampatti").product(p2).productName("Aqua Green RO 12L").serviceRequired("New RO Purchase").message("Need for family of 5. What is the warranty?").source("WEBSITE").status("CONVERTED").createdAt(LocalDateTime.now().minusDays(20)).build(),
-            Enquiry.builder().customerName("Amutha M").mobile("9876500001").address("Saravanampatti").serviceRequired("Get Quotation").message("Want to compare prices for home RO").source("WEBSITE").status("NEW").createdAt(LocalDateTime.now().minusHours(2)).build(),
-            Enquiry.builder().customerName("Chandrika P").mobile("7654300003").product(p1).productName("AGA Classic RO 7L").serviceRequired("New RO Purchase").message("Is there bulk discount for 3 units?").source("WEBSITE").status("CONTACTED").createdAt(LocalDateTime.now().minusDays(3)).build(),
-            Enquiry.builder().customerName("Suresh Nair").mobile("9765432100").serviceRequired("RO Service / AMC").message("Need annual maintenance for 5 office purifiers").source("WEBSITE").status("CONTACTED").createdAt(LocalDateTime.now().minusDays(5)).build()
-        ));
-    }
-
-    void seedSales() {
-        if (saleRepo.count() > 0) return;
-        var c = customerRepo.findAll(); var p = productRepo.findAll();
-        if (c.isEmpty()||p.isEmpty()) return;
-        saleRepo.saveAll(List.of(
-            Sale.builder().customer(c.get(0)).customerName("Rajesh Kumar").product(p.get(1)).productName("Aqua Green RO 12L").quantity(1).unitPrice(new BigDecimal("7499")).totalAmount(new BigDecimal("7499")).salesPerson("Senthil K").invoiceNumber("AQG-INV-001").paymentStatus("PAID").paymentMethod("UPI").createdAt(LocalDateTime.now().minusDays(20)).updatedAt(LocalDateTime.now().minusDays(20)).build(),
-            Sale.builder().customer(c.get(1)).customerName("Priya Sundaram").product(p.get(2)).productName("AGA Pro RO+UV 15L").quantity(1).unitPrice(new BigDecimal("10999")).totalAmount(new BigDecimal("10999")).salesPerson("Murugan K").invoiceNumber("AQG-INV-002").paymentStatus("PAID").paymentMethod("CASH").createdAt(LocalDateTime.now().minusDays(18)).updatedAt(LocalDateTime.now().minusDays(18)).build(),
-            Sale.builder().customer(c.get(4)).customerName("Dinesh Kumar").product(p.get(3)).productName("Commercial RO 25 LPH").quantity(1).unitPrice(new BigDecimal("14999")).totalAmount(new BigDecimal("14999")).salesPerson("Senthil K").invoiceNumber("AQG-INV-003").paymentStatus("PAID").paymentMethod("BANK_TRANSFER").createdAt(LocalDateTime.now().minusDays(15)).updatedAt(LocalDateTime.now().minusDays(15)).build(),
-            Sale.builder().customer(c.get(2)).customerName("Murugan V").product(p.get(0)).productName("AGA Classic RO 7L").quantity(2).unitPrice(new BigDecimal("4999")).totalAmount(new BigDecimal("9998")).salesPerson("Senthil K").invoiceNumber("AQG-INV-004").paymentStatus("PAID").paymentMethod("UPI").createdAt(LocalDateTime.now().minusDays(12)).updatedAt(LocalDateTime.now().minusDays(12)).build(),
-            Sale.builder().customer(c.get(5)).customerName("Kavitha Devi").product(p.get(1)).productName("Aqua Green RO 12L").quantity(1).unitPrice(new BigDecimal("7499")).totalAmount(new BigDecimal("7499")).salesPerson("Murugan K").invoiceNumber("AQG-INV-005").paymentStatus("PENDING").paymentMethod("UPI").createdAt(LocalDateTime.now().minusDays(8)).updatedAt(LocalDateTime.now().minusDays(8)).build(),
-            Sale.builder().customer(c.get(7)).customerName("Gomathi D").product(p.get(4)).productName("Commercial RO 50 LPH").quantity(1).unitPrice(new BigDecimal("18999")).totalAmount(new BigDecimal("18999")).salesPerson("Senthil K").invoiceNumber("AQG-INV-006").paymentStatus("PAID").paymentMethod("BANK_TRANSFER").createdAt(LocalDateTime.now().minusDays(5)).updatedAt(LocalDateTime.now().minusDays(5)).build(),
-            Sale.builder().customer(c.get(3)).customerName("Lakshmi R").product(p.get(0)).productName("AGA Classic RO 7L").quantity(1).unitPrice(new BigDecimal("4999")).totalAmount(new BigDecimal("4999")).salesPerson("Karthik R").invoiceNumber("AQG-INV-007").paymentStatus("PAID").paymentMethod("CASH").createdAt(LocalDateTime.now().minusDays(3)).updatedAt(LocalDateTime.now().minusDays(3)).build(),
-            Sale.builder().customer(c.get(6)).customerName("Suresh Nair").product(p.get(2)).productName("AGA Pro RO+UV 15L").quantity(2).unitPrice(new BigDecimal("10999")).totalAmount(new BigDecimal("21998")).salesPerson("Senthil K").invoiceNumber("AQG-INV-008").paymentStatus("PAID").paymentMethod("UPI").createdAt(LocalDateTime.now().minusDays(1)).updatedAt(LocalDateTime.now().minusDays(1)).build()
-        ));
-    }
-
-    void seedServiceRequests() {
-        if (serviceRequestRepo.count() > 0) return;
-        var c = customerRepo.findAll(); if (c.isEmpty()) return;
-        serviceRequestRepo.saveAll(List.of(
-            ServiceRequest.builder().ticketNumber("SRV-001").customer(c.get(0)).customerName("Rajesh Kumar").customerMobile("9876543210").productName("Aqua Green RO 12L").issueDescription("Filter change needed — 12 months done").assignedTechnician("Murugan K").serviceCharge(new BigDecimal("399")).status("COMPLETED").priority("MEDIUM").technicianNotes("Replaced sediment and carbon filters. System running perfectly.").completedAt(LocalDateTime.now().minusDays(10)).createdAt(LocalDateTime.now().minusDays(11)).updatedAt(LocalDateTime.now().minusDays(10)).build(),
-            ServiceRequest.builder().ticketNumber("SRV-002").customer(c.get(1)).customerName("Priya Sundaram").customerMobile("8765432109").productName("AGA Pro RO+UV 15L").issueDescription("Water flow reduced drastically").assignedTechnician("Senthil K").serviceCharge(new BigDecimal("249")).status("IN_PROGRESS").priority("HIGH").technicianNotes("Membrane partially blocked.").createdAt(LocalDateTime.now().minusDays(2)).updatedAt(LocalDateTime.now().minusHours(4)).build(),
-            ServiceRequest.builder().ticketNumber("SRV-003").customer(c.get(2)).customerName("Murugan V").customerMobile("7654321098").productName("AGA Classic RO 7L").issueDescription("TDS reading showing 180 ppm").assignedTechnician("Karthik R").serviceCharge(new BigDecimal("599")).status("PENDING").priority("MEDIUM").createdAt(LocalDateTime.now().minusDays(1)).updatedAt(LocalDateTime.now().minusDays(1)).build(),
-            ServiceRequest.builder().ticketNumber("SRV-004").customer(c.get(3)).customerName("Lakshmi R").customerMobile("6543210987").productName("Aqua Green RO 12L").issueDescription("Water leaking from bottom of tank").assignedTechnician("Murugan K").serviceCharge(new BigDecimal("349")).status("ASSIGNED").priority("URGENT").createdAt(LocalDateTime.now().minusHours(5)).updatedAt(LocalDateTime.now().minusHours(3)).build(),
-            ServiceRequest.builder().ticketNumber("SRV-005").customer(c.get(5)).customerName("Kavitha Devi").customerMobile("8877665544").productName("AGA Classic RO 7L").issueDescription("Booster pump making loud noise").assignedTechnician("").serviceCharge(BigDecimal.ZERO).status("PENDING").priority("LOW").createdAt(LocalDateTime.now().minusHours(1)).updatedAt(LocalDateTime.now().minusHours(1)).build(),
-            ServiceRequest.builder().ticketNumber("SRV-006").customer(c.get(4)).customerName("Dinesh Kumar").customerMobile("9988776655").productName("Commercial RO 25 LPH").issueDescription("Annual maintenance due — AMC").assignedTechnician("Karthik R").serviceCharge(new BigDecimal("799")).status("COMPLETED").priority("MEDIUM").technicianNotes("Full AMC done. TDS: 12ppm.").completedAt(LocalDateTime.now().minusDays(5)).createdAt(LocalDateTime.now().minusDays(6)).updatedAt(LocalDateTime.now().minusDays(5)).build()
-        ));
-    }
-
-    void seedQuotations() {
-        if (quotationRepo.count() > 0) return;
-        var c = customerRepo.findAll(); if (c.isEmpty()) return;
-        quotationRepo.saveAll(List.of(
-            Quotation.builder().quotationNumber("AQG-QT-001").customer(c.get(4)).customerName("Dinesh Kumar").customerMobile("9988776655").customerAddress("Industrial Estate, Kurichi, Coimbatore").itemsJson("[{\"name\":\"Commercial RO 50 LPH\",\"qty\":1,\"price\":18999}]").subtotal(new BigDecimal("18999")).gstAmount(new BigDecimal("3420")).totalAmount(new BigDecimal("22419")).notes("GST 18% applicable.").status("SENT").createdAt(LocalDateTime.now().minusDays(5)).updatedAt(LocalDateTime.now().minusDays(5)).build(),
-            Quotation.builder().quotationNumber("AQG-QT-002").customer(c.get(7)).customerName("Gomathi D").customerMobile("8654321099").customerAddress("Race Course, RS Puram, Coimbatore").itemsJson("[{\"name\":\"Industrial RO 100 LPH\",\"qty\":1,\"price\":35000}]").subtotal(new BigDecimal("35000")).gstAmount(new BigDecimal("6300")).totalAmount(new BigDecimal("41300")).notes("3-year warranty included.").status("ACCEPTED").createdAt(LocalDateTime.now().minusDays(10)).updatedAt(LocalDateTime.now().minusDays(7)).build(),
-            Quotation.builder().quotationNumber("AQG-QT-003").customer(c.get(2)).customerName("Murugan V").customerMobile("7654321098").customerAddress("Nehru Street, Peelamedu, Coimbatore").itemsJson("[{\"name\":\"AGA Pro RO+UV 15L\",\"qty\":1,\"price\":10999}]").subtotal(new BigDecimal("10999")).gstAmount(new BigDecimal("1980")).totalAmount(new BigDecimal("12979")).status("DRAFT").createdAt(LocalDateTime.now().minusDays(2)).updatedAt(LocalDateTime.now().minusDays(2)).build(),
-            Quotation.builder().quotationNumber("AQG-QT-004").customer(c.get(6)).customerName("Suresh Nair").customerMobile("9765432100").customerAddress("Avinashi Road, Peelamedu, Coimbatore").itemsJson("[{\"name\":\"Aqua Green RO 12L\",\"qty\":3,\"price\":7499}]").subtotal(new BigDecimal("22497")).gstAmount(new BigDecimal("4050")).totalAmount(new BigDecimal("26547")).notes("Bulk order — 3 units.").status("SENT").createdAt(LocalDateTime.now().minusDays(3)).updatedAt(LocalDateTime.now().minusDays(3)).build()
         ));
     }
 

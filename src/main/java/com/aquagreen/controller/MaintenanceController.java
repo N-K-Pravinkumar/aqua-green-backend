@@ -2,7 +2,9 @@ package com.aquagreen.controller;
 
 import com.aquagreen.dto.ApiResponse;
 import com.aquagreen.model.ServiceRequest;
+import com.aquagreen.repository.SaleRepository;
 import com.aquagreen.repository.ServiceRequestRepository;
+import com.aquagreen.repository.StockItemRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,19 +28,35 @@ import java.util.*;
 public class MaintenanceController {
 
     private final ServiceRequestRepository repo;
+    private final SaleRepository saleRepo;
+    private final StockItemRepository stockRepo;
     private final ObjectMapper mapper;
 
-    /** Distinct part names ever logged, so the UI can offer a suggestion dropdown. */
+    /**
+     * Suggestion list for the filter dropdown — merges part names actually
+     * logged against completed services with your real catalog (sold
+     * products + spares/stock), so options like "Membrane" or "Carbon
+     * Filter" show up even before any service has used that exact wording.
+     * The filter box still accepts free typing beyond this list too.
+     */
     @GetMapping("/parts")
     public ResponseEntity<ApiResponse<List<String>>> partsUsed() {
-        List<ServiceRequest> completed = repo.findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc("COMPLETED");
         TreeSet<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        List<ServiceRequest> completed = repo.findByStatusAndSparePartsJsonIsNotNullOrderByCompletedAtDesc("COMPLETED");
         for (ServiceRequest sr : completed) {
             for (Map<String,Object> p : parseParts(sr.getSparePartsJson())) {
                 Object n = p.get("name");
                 if (n != null && !n.toString().isBlank()) names.add(n.toString().trim());
             }
         }
+        for (var sale : saleRepo.findAll()) {
+            if (sale.getProductName() != null && !sale.getProductName().isBlank()) names.add(sale.getProductName().trim());
+        }
+        for (var stock : stockRepo.findAll()) {
+            if (stock.getName() != null && !stock.getName().isBlank()) names.add(stock.getName().trim());
+        }
+
         return ResponseEntity.ok(ApiResponse.success("OK", new ArrayList<>(names)));
     }
 

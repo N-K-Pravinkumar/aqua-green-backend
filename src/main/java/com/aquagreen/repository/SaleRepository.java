@@ -15,6 +15,12 @@ public interface SaleRepository extends JpaRepository<Sale,Long> {
     BigDecimal sumTotalRevenue();
     @Query("SELECT COALESCE(SUM(s.totalAmount),0) FROM Sale s WHERE MONTH(s.createdAt)=MONTH(CURRENT_DATE) AND YEAR(s.createdAt)=YEAR(CURRENT_DATE)")
     BigDecimal sumMonthlyRevenue();
+    @Query("SELECT COALESCE(SUM(s.totalAmount),0) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
+    BigDecimal sumRevenueBetween(@org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+                                  @org.springframework.data.repository.query.Param("to")   java.time.LocalDateTime to);
+    @Query("SELECT COUNT(s) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
+    long countBetween(@org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+                       @org.springframework.data.repository.query.Param("to")   java.time.LocalDateTime to);
     // For dashboard monthly chart — group sales by month
     @Query("SELECT MONTH(s.createdAt) as month, COALESCE(SUM(s.totalAmount),0) as total FROM Sale s WHERE YEAR(s.createdAt)=YEAR(CURRENT_DATE) GROUP BY MONTH(s.createdAt) ORDER BY MONTH(s.createdAt)")
     List<Object[]> monthlySaleTotals();

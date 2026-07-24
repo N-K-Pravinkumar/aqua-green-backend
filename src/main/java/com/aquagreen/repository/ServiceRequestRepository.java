@@ -41,4 +41,11 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest,L
     List<ServiceRequest> findByServiceCodeIsNullOrderByIdAsc();
     // Idempotency check for bulk imports — lets the same import be safely re-run
     boolean existsByCustomerMobileAndCompletedAtAndTotalBillAmount(String customerMobile, java.time.LocalDateTime completedAt, java.math.BigDecimal totalBillAmount);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(sr.totalBillAmount),0) FROM ServiceRequest sr WHERE sr.completedAt BETWEEN :from AND :to")
+    java.math.BigDecimal sumRevenueBetween(@org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+                                            @org.springframework.data.repository.query.Param("to")   java.time.LocalDateTime to);
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(sr) FROM ServiceRequest sr WHERE sr.completedAt BETWEEN :from AND :to")
+    long countBetween(@org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from,
+                       @org.springframework.data.repository.query.Param("to")   java.time.LocalDateTime to);
 }

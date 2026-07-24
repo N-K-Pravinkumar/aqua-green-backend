@@ -22,6 +22,7 @@ public class CustomerController {
     private final SaleRepository saleRepo;
     private final QuotationRepository quotationRepo;
     private final CustomerPhoneRepository phoneRepo;
+    private final OperationHistoryRepository historyRepo;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<Customer>>> getAll(
@@ -76,6 +77,31 @@ public class CustomerController {
     @GetMapping("/{id}/phones")
     public ResponseEntity<ApiResponse<List<com.aquagreen.model.CustomerPhone>>> getPhones(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("OK", phoneRepo.findByCustomerId(id)));
+    }
+
+    /**
+     * Log that a WhatsApp message (bill, reminder, template, etc.) was sent
+     * to a customer, so it shows up in their History timeline. Best-effort —
+     * the actual send already happened client-side (opening wa.me); this
+     * just records that it happened.
+     */
+    @PostMapping("/log-message")
+    public ResponseEntity<ApiResponse<Void>> logMessage(@RequestBody Map<String,Object> body) {
+        Long customerId = body.get("customerId") != null ? Long.valueOf(body.get("customerId").toString()) : null;
+        String channel = String.valueOf(body.getOrDefault("channel", "WHATSAPP"));
+        String context = String.valueOf(body.getOrDefault("context", ""));
+        Customer c = customerId != null ? repo.findById(customerId).orElse(null) : null;
+
+        com.aquagreen.model.OperationHistory h = com.aquagreen.model.OperationHistory.builder()
+            .action(channel + "_MESSAGE_SENT")
+            .entityType("Customer")
+            .entityId(customerId)
+            .entityName(c != null ? c.getName() : null)
+            .customer(c)
+            .remarks(context)
+            .build();
+        historyRepo.save(h);
+        return ResponseEntity.ok(ApiResponse.success("Logged", null));
     }
 
     @PostMapping("/{id}/phones")
@@ -261,6 +287,7 @@ public class CustomerController {
         Map<String, Object> timeline = new LinkedHashMap<>();
         timeline.put("leads",           mobile.isEmpty() ? List.of() : leadRepo.findByMobileOrderByCreatedAtDesc(mobile));
         timeline.put("enquiries",       mobile.isEmpty() ? List.of() : enquiryRepo.findByMobileOrderByCreatedAtDesc(mobile));
+        timeline.put("messages",        historyRepo.findByCustomerIdOrderByCreatedAtDesc(id));
         timeline.put("serviceRequests", mobile.isEmpty() ? List.of() : serviceRequestRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
         timeline.put("sales",           mobile.isEmpty() ? List.of() : saleRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));
         timeline.put("quotations",      mobile.isEmpty() ? List.of() : quotationRepo.findByCustomerMobileOrderByCreatedAtDesc(mobile));

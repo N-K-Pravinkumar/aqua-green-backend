@@ -40,12 +40,17 @@ public class SeedDataCleanupController {
     private final ServiceRequestRepository serviceRequestRepo;
     private final PaymentRepository paymentRepo;
     private final OperationHistoryRepository historyRepo;
+    private final QuotationRepository quotationRepo;
+    private final EnquiryRepository enquiryRepo;
 
     private static final Pattern FAKE_EMAIL = Pattern.compile("^[a-z]+\\.[a-z]+\\d+@gmail\\.com$");
     private static final Pattern FAKE_CUSTOMER_MOBILE = Pattern.compile("^9[78]\\d{8}$");
     private static final Pattern FAKE_LEAD_MOBILE = Pattern.compile("^8[78]\\d{8}$");
-    private static final Pattern FAKE_SALE_INVOICE = Pattern.compile("^AQG-INV-\\d{4}$");
+    private static final Pattern FAKE_SALE_INVOICE = Pattern.compile("^AQG-INV-\\d+$");
     private static final Pattern FAKE_TICKET = Pattern.compile("^SRV-\\d{5}$");
+    private static final Pattern FAKE_QUOTATION = Pattern.compile("^AQG-QT-\\d+$");
+    // DataSeeder's small fixed set of demo enquiries always used one of these exact numbers
+    private static final Set<String> FAKE_ENQUIRY_MOBILES = Set.of("9876543210","9876500001","7654300003","9765432100");
 
     private List<Customer> findFakeCustomers() {
         return customerRepo.findAll().stream()
@@ -74,6 +79,16 @@ public class SeedDataCleanupController {
             .filter(p -> p.getPaymentNumber() != null && p.getPaymentNumber().startsWith("AQG-PAY-"))
             .collect(Collectors.toList());
     }
+    private List<Quotation> findFakeQuotations() {
+        return quotationRepo.findAll().stream()
+            .filter(q -> q.getQuotationNumber() != null && FAKE_QUOTATION.matcher(q.getQuotationNumber()).matches())
+            .collect(Collectors.toList());
+    }
+    private List<Enquiry> findFakeEnquiries() {
+        return enquiryRepo.findAll().stream()
+            .filter(e -> e.getMobile() != null && FAKE_ENQUIRY_MOBILES.contains(e.getMobile()))
+            .collect(Collectors.toList());
+    }
 
     /** Preview only — shows exactly what would be deleted, deletes nothing. */
     @GetMapping("/preview")
@@ -84,6 +99,8 @@ public class SeedDataCleanupController {
         result.put("fakeSales", findFakeSales().size());
         result.put("fakeServiceRequests", findFakeServices().size());
         result.put("fakePayments", findFakePayments().size());
+        result.put("fakeQuotations", findFakeQuotations().size());
+        result.put("fakeEnquiries", findFakeEnquiries().size());
         return ResponseEntity.ok(ApiResponse.success("Preview only — nothing deleted", result));
     }
 
@@ -92,6 +109,12 @@ public class SeedDataCleanupController {
     public ResponseEntity<ApiResponse<Map<String,Object>>> execute() {
         List<Payment> fakePayments = findFakePayments();
         paymentRepo.deleteAll(fakePayments);
+
+        List<Quotation> fakeQuotations = findFakeQuotations();
+        quotationRepo.deleteAll(fakeQuotations);
+
+        List<Enquiry> fakeEnquiries = findFakeEnquiries();
+        enquiryRepo.deleteAll(fakeEnquiries);
 
         List<Sale> fakeSales = findFakeSales();
         saleRepo.deleteAll(fakeSales);
@@ -116,6 +139,8 @@ public class SeedDataCleanupController {
         result.put("salesDeleted", fakeSales.size());
         result.put("serviceRequestsDeleted", fakeServices.size());
         result.put("paymentsDeleted", fakePayments.size());
+        result.put("quotationsDeleted", fakeQuotations.size());
+        result.put("enquiriesDeleted", fakeEnquiries.size());
         result.put("historyDeleted", fakeHistory.size());
 
         log.info("Seed data cleanup: {}", result);

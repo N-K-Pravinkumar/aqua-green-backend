@@ -40,6 +40,23 @@ public class SaleController {
                    "monthlyRevenue", repo.sumMonthlyRevenue(),
                    "totalSales", repo.count())));
     }
+
+    /**
+     * Revenue analytics for a custom date range — powers the "This Month",
+     * "Last N Months", "This Week", and custom-range analytics selector.
+     * from/to are ISO date-times, e.g. 2026-01-01T00:00:00.
+     */
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<Map<String,Object>>> analytics(
+            @RequestParam String from, @RequestParam String to) {
+        java.time.LocalDateTime f = java.time.LocalDateTime.parse(from);
+        java.time.LocalDateTime t = java.time.LocalDateTime.parse(to);
+        Map<String,Object> result = new java.util.LinkedHashMap<>();
+        result.put("revenue", repo.sumRevenueBetween(f, t));
+        result.put("count", repo.countBetween(f, t));
+        return ResponseEntity.ok(ApiResponse.success("OK", result));
+    }
+
     @GetMapping("/{id}") public ResponseEntity<ApiResponse<Sale>> getById(@PathVariable Long id) {
         return repo.findById(id).map(s->ResponseEntity.ok(ApiResponse.success("OK",s))).orElse(ResponseEntity.notFound().build());
     }
