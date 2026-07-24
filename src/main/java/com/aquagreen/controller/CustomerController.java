@@ -31,9 +31,13 @@ public class CustomerController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<Customer>>> search(@RequestParam String q) {
+    public ResponseEntity<ApiResponse<Page<Customer>>> search(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable p = PageRequest.of(page, size);
         return ResponseEntity.ok(ApiResponse.success("OK",
-                repo.findByNameContainingIgnoreCaseOrMobileContaining(q, q)));
+                repo.findByNameContainingIgnoreCaseOrMobileContaining(q, q, p)));
     }
 
     @GetMapping("/lookup")

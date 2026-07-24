@@ -11,6 +11,7 @@ public interface CustomerRepository extends JpaRepository<Customer,Long> {
     List<Customer> findByActiveTrueOrderByCreatedAtDesc();
     List<Customer> findAllByOrderByCreatedAtDesc();
     List<Customer> findByNameContainingIgnoreCaseOrMobileContaining(String name, String mobile);
+    Page<Customer> findByNameContainingIgnoreCaseOrMobileContaining(String name, String mobile, Pageable pageable);
     java.util.Optional<Customer> findByMobile(String mobile);
     long countByActiveTrue();
 }
