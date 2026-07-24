@@ -63,6 +63,17 @@ public class ServiceRequestController {
         return ResponseEntity.ok(ApiResponse.success("OK", result));
     }
 
+    /** True counts across the whole table (not just the current page). */
+    @GetMapping("/counts")
+    public ResponseEntity<ApiResponse<Map<String,Long>>> counts() {
+        Map<String,Long> result = new LinkedHashMap<>();
+        for (String s : new String[]{"PENDING","ASSIGNED","IN_PROGRESS","COMPLETED","CANCELLED"}) {
+            result.put(s, repo.countByStatus(s));
+        }
+        result.put("TOTAL", repo.count());
+        return ResponseEntity.ok(ApiResponse.success("OK", result));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ServiceRequest>> getById(@PathVariable Long id) {
         return repo.findById(id).map(s -> ResponseEntity.ok(ApiResponse.success("OK", s)))
